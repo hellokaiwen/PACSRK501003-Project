@@ -38,7 +38,7 @@ Graph::Graph(const vector<Vertex>& vertices) {
     }
 }
 
-Graph::Graph() : V({}) {}  // initialize an empty graph
+Graph::Graph() : V({}) {} // initialize an empty graph
 
 bool Graph::is_empty() const { return !size; }
 
@@ -52,14 +52,14 @@ bool Graph::add_vertex(uint_t id) {
     return true;
 }
 
-/* Precondition: graph is undirected */
+/* Precondition: graph is directed; edge is from uid to vid */
 bool Graph::add_edge(uint_t uid, uint_t vid) {
     if (!this->has_vertex(uid) || !this->has_vertex(vid))
         return false;
     Vertex& u = V.find(uid)->second;
     Vertex& v = V.find(vid)->second;
     u.add_neighbor(v.get_id());
-    v.add_neighbor(u.get_id());
+    // v.add_neighbor(u.get_id());
     return true;
 }
 
