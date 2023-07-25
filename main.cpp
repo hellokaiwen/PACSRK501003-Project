@@ -59,6 +59,7 @@ void initialize_random_graph(uint_t n, const Range& range, Graph& g) {
         uint_t uid = random(range);
         bool added = g.add_vertex(uid);
         if (added) {
+            VERTEX_IDS.push_back(uid);
             uint_t randid = random(range);
             if (g.has_vertex(randid)) {
                 g.add_edge(randid, uid);
