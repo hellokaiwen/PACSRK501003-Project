@@ -30,11 +30,12 @@ int main(int argc, char *argv[]) {
 //    iss_max >> max;
 //    iss_n >> n;
 
-    Range range = {0, 10000};
+    Range range = {0, 100000000};
     Graph g;
-    initialize_random_graph(10000, range, g);
+    initialize_random_graph(100000000, range, g);
+    // g.print();
     uint_t rand_root_id = VERTEX_IDS[rand() % VERTEX_IDS.size()];
-    g.BFS(rand_root_id);
+    g.BFS(32632);
 
 //    vector<Vertex> V = {Vertex(0), Vertex(1), Vertex(2), Vertex(3)};
 //    Graph g(V);
