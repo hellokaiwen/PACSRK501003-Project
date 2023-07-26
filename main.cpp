@@ -1,10 +1,11 @@
 #include <cstdio>
+#include <iostream>
 
 #include "graph.h"
 #include "log.h"
 
 const int NODES = 20;
-const int EDGES = NODES * 2;
+const int EDGES = NODES * 5;
 
 int main() {
     auto graph = Graph::CreateRandom(NODES, EDGES);
@@ -18,7 +19,13 @@ int main() {
         }
         LOG("\n");
     }
+    std::cout << "Serial BFS\n";
     BFS(graph, start, [&](const Vertex& v) {
+        LOG("%lu\n", v.vid);
+    });
+    std::cout << "\n";
+    std::cout << "orderedParallelBFS\n";
+    orderedParallelBFS(graph, start, [&](const Vertex& v) {
         LOG("%lu\n", v.vid);
     });
     return 0;

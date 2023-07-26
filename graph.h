@@ -11,6 +11,7 @@ using vid_t = uint64_t;
 struct Vertex {
     const vid_t vid;
     std::unordered_set<vid_t> adjacent;
+    Vertex(vid_t v) : vid(v) {}
 };
 
 using VertexRefW = std::reference_wrapper<const Vertex>;
@@ -33,3 +34,5 @@ private:
 };
 
 void BFS(const Graph& graph, const Vertex& start, const std::function<void(const Vertex&)>& visit);
+
+void orderedParallelBFS(const Graph& graph, const Vertex& start, const std::function<void(const Vertex&)>& visit);

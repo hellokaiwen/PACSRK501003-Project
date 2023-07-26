@@ -1,0 +1,3 @@
+/mnt/d/Research/FInal/PACSRK501003-Project/CMakeFiles/final.dir
+/mnt/d/Research/FInal/PACSRK501003-Project/CMakeFiles/edit_cache.dir
+/mnt/d/Research/FInal/PACSRK501003-Project/CMakeFiles/rebuild_cache.dir

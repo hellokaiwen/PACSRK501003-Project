@@ -1,6 +1,6 @@
 #include <queue>
 #include <random>
-
+#include <omp.h>
 #include "graph.h"
 
 VertexRefWMut Graph::AddVertex(vid_t vid) {
@@ -50,7 +50,7 @@ void BFS(const Graph& graph, const Vertex& start, const std::function<void(const
     while (!queue.empty()) {
         auto vertex = queue.front();
         queue.pop();
-        if (visited.contains(vertex.get().vid)) continue;
+        if (visited.find(vertex.get().vid) != visited.end()) continue;
         visit(vertex);
         visited.insert(vertex.get().vid);
         for (auto vid: vertex.get().adjacent) {
@@ -58,6 +58,45 @@ void BFS(const Graph& graph, const Vertex& start, const std::function<void(const
             if (v.has_value()) {
                 queue.push(v.value());
             }
+        }
+    }
+}
+
+void orderedParallelBFS(const Graph& graph, const Vertex& start, const std::function<void(const Vertex&)>& visit) {
+    std::queue<VertexRefW> queue;
+    std::unordered_set<vid_t> visited;
+    queue.emplace(start);
+    #pragma omp parallel
+    {
+        while (!queue.empty()) {
+            auto vertex = queue.front();
+            #pragma omp critical
+            {
+                if (!queue.empty()) {
+                    vertex = queue.front();
+                    queue.pop();
+                }
+            }
+            if (vertex.get().vid == -1) continue; // Continue if the vertex is empty
+            #pragma omp for schedule(dynamic)
+            for (auto vid : vertex.get().adjacent) {
+                auto v = graph.GetVertex(vid);
+                if (v.has_value() && visited.find(vid) == visited.end()) {
+                    #pragma omp critical
+                    {
+                        visited.insert(vid);
+                        queue.push(v.value());
+                    }
+                }
+            }
+            #pragma omp single
+            {
+                if (!queue.empty()) {
+                    visit(vertex.get());
+                }
+            }
+
+            #pragma omp barrier
         }
     }
 }
