@@ -70,14 +70,18 @@ void orderedParallelBFS(const Graph& graph, const Vertex& start, const std::func
     {
         while (!queue.empty()) {
             auto vertex = queue.front();
+            if (!queue.empty()) {
+                #pragma omp critical
+                queue.pop();
+            }
+
+            if (vertex.get().vid == -1) continue; // Continue if the vertex is empty
             #pragma omp critical
             {
-                if (!queue.empty()) {
-                    vertex = queue.front();
-                    queue.pop();
-                }
+                visit(vertex.get().vid);
+                visited.insert(vertex.get().vid);
             }
-            if (vertex.get().vid == -1) continue; // Continue if the vertex is empty
+
             #pragma omp for schedule(dynamic)
             for (auto vid : vertex.get().adjacent) {
                 auto v = graph.GetVertex(vid);
@@ -87,12 +91,6 @@ void orderedParallelBFS(const Graph& graph, const Vertex& start, const std::func
                         visited.insert(vid);
                         queue.push(v.value());
                     }
-                }
-            }
-            #pragma omp single
-            {
-                if (!queue.empty()) {
-                    visit(vertex.get());
                 }
             }
 
