@@ -1,3 +1,3 @@
 #pragma once
 
-#define LOG(fmt, ...) printf(fmt "\n", ##__VA_ARGS__)
+#define LOG(fmt, ...) printf(fmt, ##__VA_ARGS__)
