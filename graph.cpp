@@ -62,39 +62,39 @@ void BFS(const Graph& graph, const Vertex& start, const std::function<void(const
     }
 }
 
-void orderedParallelBFS(const Graph& graph, const Vertex& start, const std::function<void(const Vertex&)>& visit) {
+void OrderedParallelBFS(const Graph& graph, const Vertex& start, const std::function<void(const Vertex&)>& visit) {
     std::queue<VertexRefW> queue;
     std::unordered_set<vid_t> visited;
     queue.emplace(start);
-    #pragma omp parallel
-    {
-        while (!queue.empty()) {
-            auto vertex = queue.front();
-            if (!queue.empty()) {
-                #pragma omp critical
-                queue.pop();
-            }
-
-            if (vertex.get().vid == -1) continue; // Continue if the vertex is empty
-            #pragma omp critical
-            {
-                visit(vertex.get().vid);
-                visited.insert(vertex.get().vid);
-            }
-
-            #pragma omp for schedule(dynamic)
-            for (auto vid : vertex.get().adjacent) {
-                auto v = graph.GetVertex(vid);
-                if (v.has_value() && visited.find(vid) == visited.end()) {
-                    #pragma omp critical
-                    {
-                        visited.insert(vid);
-                        queue.push(v.value());
-                    }
-                }
-            }
-
-            #pragma omp barrier
+    while (!queue.empty()) {
+        auto vertex = queue.front();
+        #pragma omp critical
+        {
+            vertex = queue.front();
+            queue.pop();
         }
+        if (visited.find(vertex.get().vid) != visited.end()) continue;
+
+        #pragma omp critical
+        {
+            visit(vertex);
+            visited.insert(vertex.get().vid);
+        }
+
+        std::vector<vid_t> adj = {};
+        for (auto vid : vertex.get().adjacent) {
+            adj.push_back(vid);
+        }
+
+        #pragma omp for
+        for (auto itr = adj.begin(); itr != adj.end(); itr++) {
+            auto vid = *itr;
+            auto v = graph.GetVertex(vid);
+            if (v.has_value()) {
+                queue.push(v.value());
+            }
+        }
+
+        #pragma omp barrier
     }
 }
