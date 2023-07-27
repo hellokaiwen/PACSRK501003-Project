@@ -35,4 +35,4 @@ private:
 
 void BFS(const Graph& graph, const Vertex& start, const std::function<void(const Vertex&)>& visit);
 
-void orderedParallelBFS(const Graph& graph, const Vertex& start, const std::function<void(const Vertex&)>& visit);
+void OrderedParallelBFS(const Graph& graph, const Vertex& start, const std::function<void(const Vertex&)>& visit);
