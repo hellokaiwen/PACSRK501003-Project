@@ -1,70 +1,42 @@
-#include "graph.cpp"
+#include <cstdio>
+#include <omp.h>
 #include <iostream>
-#include <sstream>
-using std::istringstream;
+#include "graph.h"
+#include "log.h"
 
-vector<uint_t> VERTEX_IDS {};
-
-uint_t random(const Range&);
-void initialize_random_graph(uint_t, const Range&, Graph&);
+const int NODES = 100000;
+const int EDGES = NODES * 2;
 
 int main(int argc, char *argv[]) {
-//    vector<Vertex> V {};
-//    for (uint_t i = 0; i < 8; i++)
-//        V.push_back(Vertex(i));
-//    Graph g(V);
-//    g.add_edge(0, 1);
-//    g.add_edge(0, 2);
-//    g.add_edge(1, 3);
-//    g.add_edge(2, 4);
-//    g.add_edge(3, 5);
-//    g.add_edge(3, 6);
-//    g.add_edge(4, 7);
-//    g.BFS(0);
+    auto graph = Graph::CreateRandom(NODES, EDGES);
+    LOG("Graph generated for %d nodes and %d edges\n", NODES, EDGES);
+	
+    auto& start = graph.GetVertex(0).value().get();
+//    for (int i = 0; i < NODES; i++) {
+//        auto& vertex = graph.GetVertex(i).value().get();
+//        LOG("%lu: ", vertex.vid);
+//        for (auto vid: vertex.adjacent) {
+//            LOG("%lu ", vid);
+//        }
+//        LOG("\n");
+//    }
 
-//    uint_t min, max, n;
-//    istringstream iss_min(argv[1]);
-//    istringstream iss_max(argv[2]);
-//    istringstream iss_n(argv[3]);
-//    iss_min >> min;
-//    iss_max >> max;
-//    iss_n >> n;
+// [&](const Vertex& v) {LOG("%lu ", v.vid);}
 
-    Range range = {0, 100000000};
-    Graph g;
-    initialize_random_graph(100000000, range, g);
-    // g.print();
-    uint_t rand_root_id = VERTEX_IDS[rand() % VERTEX_IDS.size()];
-    g.BFS(32632);
+    double init = omp_get_wtime();
+    SerialBFS(graph, start);
+    double end = omp_get_wtime();
+    std::cout << "SERIAL BFS EXECUTION TIME: " << end - init << "\n";
 
-//    vector<Vertex> V = {Vertex(0), Vertex(1), Vertex(2), Vertex(3)};
-//    Graph g(V);
-//    g.add_edge(0, 1);
-//    g.add_edge(0, 2);
-//    g.add_edge(1, 2);
-//    g.add_edge(2, 0);
-//    g.add_edge(2, 3);
-//    g.add_edge(3, 3);
-//    g.BFS(2);
+    init = omp_get_wtime();
+    graph.BFS(start);
+    end = omp_get_wtime();
+    std::cout << "GRAPH.BFS EXECUTION TIME: " << end - init << "\n";
+
+    init = omp_get_wtime();
+    graph.ParallelBFS(start, 12);
+	end = omp_get_wtime();
+    std::cout << "PARALLEL BFS EXECUTION TIME: " << end - init << "\n";
+
     return 0;
-}
-
-uint_t random(const Range& range) {
-    uint_t delta = range.max - range.min + 1;
-    return rand() % delta + range.min;
-}
-
-void initialize_random_graph(uint_t n, const Range& range, Graph& g) {
-    uint_t i;
-    for (i = 1; i <= n; i++) {
-        uint_t uid = random(range);
-        bool added = g.add_vertex(uid);
-        if (added) {
-            VERTEX_IDS.push_back(uid);
-            uint_t randid = random(range);
-            if (g.has_vertex(randid)) {
-                g.add_edge(randid, uid);
-            }
-        }
-    }
 }
