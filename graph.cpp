@@ -1,116 +1,137 @@
+#include <queue>
+#include <random>
+#include <iostream>
+#include "omp.h"
 #include "graph.h"
-#include <algorithm>
 
-void print_array(uint_t*, uint_t, uint_t);
-
-Vertex::Vertex(uint_t id) : this_id(id), neighbors({}) {}
-
-uint_t Vertex::get_id() const { return this->this_id; }
-
-double Vertex::get_level() const { return this->level; }
-
-void Vertex::set_level(double l) { this->level = l; }
-
-/* Precondition: every vertex in a given graph has a unique identifier */
-bool Vertex::has_neighbor(uint_t id) const {
-    return std::find(this->neighbors.begin(), this->neighbors.end(), id) != this->neighbors.end();
+VertexRefWMut Graph::AddVertex(vid_t vid) {
+    auto vertex = Vertex(vid);
+    return vertices_.emplace(vid, vertex).first->second;
 }
 
-/* Precondition: id is a valid vertex id */
-bool Vertex::add_neighbor(uint_t id) {
-    if (has_neighbor(id) || id == this_id)
-        return false;
-    this->neighbors.push_back(id);
-    return true;
-}
-
-void Vertex::print() const {
-    printf("%lu: ", this->this_id);
-    for (uint_t id : this->neighbors)
-        printf("%lu ", id);
-    printf("\n");
-}
-
-Graph::Graph(const vector<Vertex>& vertices) {
-    for (const Vertex& v : vertices) {
-        this->V.insert({v.get_id(), v});
-        size++;
+std::optional<VertexRefWMut> Graph::GetVertexMut(vid_t vid) {
+    if (auto it = vertices_.find(vid); it != vertices_.end()) {
+        return it->second;
     }
+    return std::nullopt;
 }
 
-Graph::Graph() : V({}) {} // initialize an empty graph
-
-bool Graph::is_empty() const { return !size; }
-
-bool Graph::has_vertex(uint_t id) const { return V.find(id) != V.end(); }
-
-bool Graph::add_vertex(uint_t id) {
-    if (this->has_vertex(id))
-        return false;
-    V.insert({id, Vertex(id)});
-    size++;
-    return true;
+std::optional<VertexRefW> Graph::GetVertex(vid_t vid) const {
+    return const_cast<Graph*>(this)->GetVertexMut(vid);
 }
 
-/* Precondition: graph is directed; edge is from uid to vid */
-bool Graph::add_edge(uint_t uid, uint_t vid) {
-    if (!this->has_vertex(uid) || !this->has_vertex(vid))
-        return false;
-    Vertex& u = V.find(uid)->second;
-    Vertex& v = V.find(vid)->second;
-    u.add_neighbor(v.get_id());
-    // v.add_neighbor(u.get_id());
-    return true;
+bool Graph::AddEdge(Vertex& v1, const Vertex& v2) {
+    return v1.adjacent.insert(v2.vid).second;
 }
 
-void Graph::print() const {
-    std::cout << "size: " << size << std::endl;
-    for (const auto& itr : this->V) {
-        (itr.second).print();
+Graph Graph::CreateRandom(size_t nodes, size_t edges) {
+    auto graph = Graph();
+    if (nodes == 0) return graph;
+    for (size_t i = 0; i < nodes; i++) {
+        graph.AddVertex(i);
     }
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, nodes - 1);
+    for (size_t i = 0; i < edges; i++) {
+        bool success;
+        do {
+            auto v1 = dis(gen);
+            auto v2 = dis(gen);
+            success = graph.AddEdge(graph.GetVertexMut(v1).value(), graph.GetVertex(v2).value());
+        } while (!success);
+    }
+    return graph;
 }
 
-//// todo: helper function
-//void Graph::print_levels() const {
-//    for (auto itr = V.begin(); itr != V.end(); itr++)
-//        std::cout << itr->first << " : " << (itr->second).get_level() << "\n";
-//    std::cout << std::endl;
-//}
-//
-//// todo: helper function
-//uint_t Graph::get_size() const { return size; }
-
-/* Precondition: root_id is a valid vertex id */
-void Graph::BFS(uint_t root_id) {
-    uint_t front = 0, rear = 0;
-    uint_t* work_set = new uint_t[size];
-    work_set[front] = root_id;
-    Vertex& root = (Vertex&)V.find(root_id)->second;
-    root.set_level(0);
-
-    do {
-        uint_t vid = work_set[front];
-        Vertex& v = (Vertex&)V.find(vid)->second;
-        for (uint_t nid : v.neighbors) {
-            Vertex& n = (Vertex&)V.find(nid)->second;
-            double n_level = n.get_level();
-            double level = v.get_level() + 1;
-            if (level < n_level) {
-                n.set_level(level);
-                work_set[++rear] = n.get_id();
+void SerialBFS(const Graph& graph, const Vertex& start) {
+    std::queue<VertexRefW> queue;
+    std::unordered_set<vid_t> visited;
+    queue.emplace(start);
+    while (!queue.empty()) {
+        auto vertex = queue.front();
+        queue.pop();
+        if (visited.contains(vertex.get().vid)) continue;
+        // visit(vertex);
+        visited.insert(vertex.get().vid);
+        for (auto vid: vertex.get().adjacent) {
+            auto v = graph.GetVertex(vid);
+            if (v.has_value()) {
+                queue.push(v.value());
             }
         }
-        front++;
-    } while (front < rear);
-
-    ((Vertex)V.find(root_id)->second).set_level(INF);
-    print_array(work_set, 0, rear);
-    delete[] work_set;
+    }
 }
 
-void print_array(uint_t* arr, uint_t start, uint_t end) {
-    uint_t i;
-    for (i = start; i <= end; i++)
-        std::cout << arr[i] << " ";
-    std::cout << std::endl;
+void Graph::BFS(const Vertex& start) {
+    std::unordered_map<vid_t, int> levels = {};
+    for (const auto& v : vertices_)
+        levels.insert({v.first, -1});
+    levels[start.vid] = 0;
+    int level = 1;
+    std::vector<vid_t> frontier = {};
+    std::vector<vid_t> next_frontier = {};
+    frontier.push_back(start.vid);
+    // std::cout << start.vid << " ";
+    while (!frontier.empty()) {
+        for (auto itr = frontier.begin(); itr != frontier.end(); itr++) {
+            auto uid = *itr;
+            auto u = this->GetVertex(uid);
+            for (auto vid : u->get().adjacent) {
+                if (levels[vid] == -1) {
+                    next_frontier.push_back(vid);
+                    levels[vid] = level;
+                    // std::cout << vid << " ";
+                }
+            }
+        }
+        frontier = next_frontier;
+        next_frontier.clear();
+        level++;
+    }
+}
+
+void Graph::ParallelBFS(const Vertex& start, int num_threads) {
+    std::unordered_map<vid_t, int> levels = {};
+    for (const auto& v : vertices_)
+        levels.insert({v.first, -1});
+    levels[start.vid] = 0;
+    int level = 1;
+    std::vector<vid_t> frontier = {};
+    std::vector<vid_t> next_frontier = {};
+    frontier.push_back(start.vid);
+    // std::cout << start.vid << " ";
+    while (!frontier.empty()) {
+        #pragma omp parallel num_threads(num_threads)
+        {
+            std::vector<vid_t> local_frontier = {};
+            for (auto itr = frontier.begin(); itr != frontier.end(); itr++) {
+                auto uid = *itr;
+                auto u = this->GetVertex(uid);
+                for (auto vid : u->get().adjacent) {
+                    if (levels[vid] == -1) {
+                        int insert;
+                        #pragma omp atomic capture
+                        {
+                            insert = levels[vid];
+                            levels[vid] = level;
+                        }
+                        if (insert == -1) {
+                            local_frontier.push_back(vid);
+                            // std::cout << vid << " ";
+                        }
+                    }
+                }
+            }
+            #pragma omp critical
+            {
+                for (auto vid : local_frontier) {
+                    next_frontier.push_back(vid);
+                }
+            }
+        }
+        frontier = next_frontier;
+        next_frontier.clear();
+        level++;
+    }
 }
