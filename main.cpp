@@ -21,12 +21,12 @@ int main() {
     }
     std::cout << "Serial BFS\n";
     BFS(graph, start, [&](const Vertex& v) {
-        LOG("%lu\n", v.vid);
+        LOG("%lu ", v.vid);
     });
     std::cout << "\n";
     std::cout << "orderedParallelBFS\n";
-    orderedParallelBFS(graph, start, [&](const Vertex& v) {
-        LOG("%lu\n", v.vid);
+    OrderedParallelBFS(graph, start, [&](const Vertex& v) {
+        LOG("%lu ", v.vid);
     });
     return 0;
 }
