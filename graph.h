@@ -1,58 +1,39 @@
-#ifndef __GRAPH__
-#define __GRAPH__
-#include <limits>
-#include <iostream>
-#include <unordered_set>
+#pragma once
+
+#include <cstdint>
+#include <functional>
+#include <optional>
 #include <unordered_map>
-#include <vector>
-#define INF std::numeric_limits<double>::infinity()
+#include <unordered_set>
 
-using std::unordered_set;
-using std::unordered_map;
-using std::vector;
+using vid_t = uint64_t;
 
-typedef unsigned long uint_t;
-typedef struct {
-    uint_t min, max;
-} Range;
-
-class Vertex;
-class Graph;
-
-class Vertex {
-public:
-    Vertex(uint_t);
-    uint_t get_id() const;
-    double get_level() const;
-    void set_level(double);
-    bool has_neighbor(uint_t) const;
-    bool add_neighbor(uint_t);
-    void print() const;
-
-private:
-    uint_t this_id;
-    double level = INF;  // set to INF as default
-    vector<uint_t> neighbors;  // ids of neighbors
-
-    friend class Graph;
+struct Vertex {
+    const vid_t vid;
+    std::unordered_set<vid_t> adjacent;
 };
+
+using VertexRefW = std::reference_wrapper<const Vertex>;
+using VertexRefWMut = std::reference_wrapper<Vertex>;
 
 class Graph {
 public:
-    Graph(const vector<Vertex>&);
-    Graph();
-    bool is_empty() const;
-    bool has_vertex(uint_t id) const;
-    bool add_vertex(uint_t id);
-    bool add_edge(uint_t uid, uint_t vid);
-    void print() const;
-//    uint_t get_size() const;  // todo: helper function
-//    void print_levels() const;  // todo: helper function
-    void BFS(uint_t);
+    VertexRefWMut AddVertex(vid_t vid);
+
+    std::optional<VertexRefWMut> GetVertexMut(vid_t vid);
+
+    std::optional<VertexRefW> GetVertex(vid_t vid) const;
+
+    bool AddEdge(Vertex& v1, const Vertex& v2);
+
+    static Graph CreateRandom(size_t nodes, size_t edges);
+
+    void BFS(const Vertex&);
+
+    void ParallelBFS(const Vertex&, int num_threads);
 
 private:
-    unordered_map<uint_t, Vertex> V;
-    uint_t size = 0;
+    std::unordered_map<vid_t, Vertex> vertices_;
 };
 
-#endif
+void SerialBFS(const Graph& graph, const Vertex& start);
