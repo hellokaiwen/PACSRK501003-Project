@@ -105,6 +105,7 @@ void Graph::ParallelBFS(const Vertex& start, int num_threads) {
         #pragma omp parallel num_threads(num_threads)
         {
             std::vector<vid_t> local_frontier = {};
+            #pragma omp for nowait
             for (auto itr = frontier.begin(); itr != frontier.end(); itr++) {
                 auto uid = *itr;
                 auto u = this->GetVertex(uid);
