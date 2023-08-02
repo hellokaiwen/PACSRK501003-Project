@@ -1,42 +1,58 @@
 #include <cstdio>
 #include <omp.h>
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <fstream>
 #include "graph.h"
 #include "log.h"
 
-const int NODES = 100000;
-const int EDGES = NODES * 2;
+using std::istringstream;
+using std::ofstream;
+using std::string;
+
+const string WRITETO = "stat500.csv";
+const string READFROM = "graph2.txt";
 
 int main(int argc, char *argv[]) {
-    auto graph = Graph::CreateRandom(NODES, EDGES);
-    LOG("Graph generated for %d nodes and %d edges\n", NODES, EDGES);
-	
-    auto& start = graph.GetVertex(0).value().get();
-//    for (int i = 0; i < NODES; i++) {
-//        auto& vertex = graph.GetVertex(i).value().get();
-//        LOG("%lu: ", vertex.vid);
-//        for (auto vid: vertex.adjacent) {
-//            LOG("%lu ", vid);
-//        }
-//        LOG("\n");
-//    }
+    int num_exp;
+    istringstream iss_num_exp(argv[1]);
+    iss_num_exp >> num_exp;
 
-// [&](const Vertex& v) {LOG("%lu ", v.vid);}
+    ofstream file(WRITETO);
+    auto graph = Graph::Create(READFROM);
+    auto& src = graph.RandomSrc();
+    // std::cout << src.vid << std::endl;  // 
+    // graph.SerialBFS(src);
+    // std::cout << std::endl;
+    // graph.ParallelBFS(src, 12);
+    // std::cout << std::endl;
+    // graph.SerialBFS(src);
 
-    double init = omp_get_wtime();
-    SerialBFS(graph, start);
-    double end = omp_get_wtime();
-    std::cout << "SERIAL BFS EXECUTION TIME: " << end - init << "\n";
+    double start, end;
+    for (int num_t = 1; num_t <= 32; num_t++) {
+        file << num_t << ",";
+        double time_serial = 0, time_parallel = 0;
+        for (int i = 1; i <= num_exp; i++) {
+            start = omp_get_wtime();
+            graph.SerialBFS(src);
+            end = omp_get_wtime();
+            time_serial += (end - start) * 1000;
 
-    init = omp_get_wtime();
-    graph.BFS(start);
-    end = omp_get_wtime();
-    std::cout << "GRAPH.BFS EXECUTION TIME: " << end - init << "\n";
+            start = omp_get_wtime();
+            graph.ParallelBFS(src, num_t);
+            end = omp_get_wtime();
+            time_parallel += (end - start) * 1000;
+        }
+        time_serial /= num_exp;
+        time_parallel /= num_exp;
+        // std::cout << "\tavg_time_serial = " << time_serial / num_exp;
+        // std::cout << "\n\tavg_time_parallel = " << time_parallel / num_exp << "\n";
+        file << time_serial << ",";
+        file << time_parallel << ",";
+        file << time_serial / time_parallel << "\n";
+    }
 
-    init = omp_get_wtime();
-    graph.ParallelBFS(start, 12);
-	end = omp_get_wtime();
-    std::cout << "PARALLEL BFS EXECUTION TIME: " << end - init << "\n";
-
+    file.close();
     return 0;
 }
