@@ -26,9 +26,11 @@ public:
 
     bool AddEdge(Vertex& v1, const Vertex& v2);
 
-    static Graph CreateRandom(size_t nodes, size_t edges);
+    static Graph Create(std::string address);
 
-    void BFS(const Vertex&);
+    const Vertex& RandomSrc();
+
+    void SerialBFS(const Vertex&);
 
     void ParallelBFS(const Vertex&, int num_threads);
 
@@ -36,4 +38,4 @@ private:
     std::unordered_map<vid_t, Vertex> vertices_;
 };
 
-void SerialBFS(const Graph& graph, const Vertex& start);
+// void SerialBFS(const Graph& graph, const Vertex& start);
